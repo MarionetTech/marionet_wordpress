@@ -4,13 +4,15 @@
 
 class MarionetClient {
   private $debug = false;
-  private $version = '0.1.0';
+  private $version = '0.1.1';
   private $tracker_name = 'php-tracker';
   private $endpoint = 'http://tracker.marionet.tech/event';
   private $app_key;
   private $uid = null;
+  private $visitorId = null;
   private $visitor = array();
   private $access_key = null;
+  private $cookieNameUid = 'marionet_uid';
 
   public function __construct($app_key) {
     $this->app_key = (string) $app_key;
@@ -18,6 +20,14 @@ class MarionetClient {
 
   public function set_uid($uid) {
     $this->uid = (string) $uid;
+  }
+
+  public function set_uid_from_cookie() {
+    $this->uid = !empty($_COOKIE[$this->cookieNameUid]) ? $_COOKIE[$this->cookieNameUid] : null;
+  }
+
+  public function set_visitor_id($id) {
+    $this->visitorId = (string) $id;
   }
 
   public function debug($value) {
@@ -45,7 +55,7 @@ class MarionetClient {
     if (!isset($this->app_key)) return false;
 
     // Allow send orderUpdate event without uid
-    if (!isset($this->uid) || ($event_name == 'orderUpdate' && !empty($properties['number']))) return false;
+    if ((!$this->uid && !$this->visitorId) || ($event_name == 'orderUpdate' && !empty($properties['number']))) return false;
 
     $data = $data ? $data : array();
     $data['appKey'] = $this->app_key;
@@ -58,6 +68,8 @@ class MarionetClient {
     $data['properties'] = $properties;
 
     if ($this->access_key) $data['accessKey'] = $this->access_key;
+
+    if ($this->visitorId) $data['visitorId'] = $this->visitorId;
 
     $this->put_log($data);
     $post = http_build_query($data);
